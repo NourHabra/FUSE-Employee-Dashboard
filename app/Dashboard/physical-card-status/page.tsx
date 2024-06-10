@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useState, useMemo } from "react"
-import Link from "next/link" // Import Link from next/link
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../components/ui/card"
-import { Button } from "../../../components/ui/button"
+import * as React from "react";
+import { useState, useMemo } from "react";
+import Link from "next/link"; // Import Link from next/link
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
 import {
   Table,
   TableHeader,
@@ -12,18 +12,18 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "../../../components/ui/table"
-import { Input } from "../../../components/ui/input"
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu"
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../../../components/ui/tooltip"
-import { FaFilter, FaSort } from "react-icons/fa" // Importing icons from react-icons
-import { Sidebar, SidebarItem } from "../../../components/ui/SideBar" // Import Sidebar and SidebarItem
+} from "../../../components/ui/table";
+import { Input } from "../../../components/ui/input";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../../../components/ui/tooltip";
+import { FaFilter, FaSort } from "react-icons/fa"; // Importing icons from react-icons
+import { Sidebar } from "../../../components/ui/SideBar"; // Import Sidebar
 
 interface CardStatusData {
-  cardNumber: string
-  accountNumber: string
-  issueDate: string
-  status: string
+  cardNumber: string;
+  accountNumber: string;
+  issueDate: string;
+  status: string;
 }
 
 export const physicalCardStatusData: CardStatusData[] = [
@@ -37,85 +37,76 @@ export const physicalCardStatusData: CardStatusData[] = [
 ];
 
 const PhysicalCardStatus = () => {
-  const [sortConfig, setSortConfig] = useState<{ key: keyof CardStatusData, direction: string } | null>(null)
+  const [sortConfig, setSortConfig] = useState<{ key: keyof CardStatusData, direction: string } | null>(null);
   const [filter, setFilter] = useState<{ accountNumber: string, issueDate: string, status: string }>({
     accountNumber: "",
     issueDate: "",
     status: ""
-  })
+  });
 
-  const cardStatusData: CardStatusData[] = useMemo(() => physicalCardStatusData, [])
+  const cardStatusData: CardStatusData[] = useMemo(() => physicalCardStatusData, []);
 
   const sortedData = useMemo(() => {
-    let sortableData = [...cardStatusData]
+    let sortableData = [...cardStatusData];
     if (sortConfig !== null) {
       sortableData.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1
+          return sortConfig.direction === 'ascending' ? -1 : 1;
         }
         if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1
+          return sortConfig.direction === 'ascending' ? 1 : -1;
         }
-        return 0
-      })
+        return 0;
+      });
     }
-    return sortableData
-  }, [cardStatusData, sortConfig])
+    return sortableData;
+  }, [cardStatusData, sortConfig]);
 
   const filteredData = useMemo(() => {
     return sortedData.filter(item => {
-      const matchesAccountNumber = item.accountNumber.includes(filter.accountNumber)
-      const matchesIssueDate = item.issueDate.includes(filter.issueDate)
-      const matchesStatus = item.status.includes(filter.status)
-      return matchesAccountNumber && matchesIssueDate && matchesStatus
-    })
-  }, [sortedData, filter])
+      const matchesAccountNumber = item.accountNumber.includes(filter.accountNumber);
+      const matchesIssueDate = item.issueDate.includes(filter.issueDate);
+      const matchesStatus = item.status.includes(filter.status);
+      return matchesAccountNumber && matchesIssueDate && matchesStatus;
+    });
+  }, [sortedData, filter]);
 
   const requestSort = (key: keyof CardStatusData) => {
-    let direction = 'ascending'
+    let direction = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending'
+      direction = 'descending';
     }
-    setSortConfig({ key, direction })
-  }
+    setSortConfig({ key, direction });
+  };
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFilter(prevFilter => ({ ...prevFilter, [name]: value }))
-  }
+    const { name, value } = e.target;
+    setFilter(prevFilter => ({ ...prevFilter, [name]: value }));
+  };
 
   const handleSortChange = (value: string) => {
     switch (value) {
       case 'cardNumber':
-        requestSort('cardNumber')
-        break
+        requestSort('cardNumber');
+        break;
       case 'accountNumber':
-        requestSort('accountNumber')
-        break
+        requestSort('accountNumber');
+        break;
       case 'issueDate':
-        requestSort('issueDate')
-        break
+        requestSort('issueDate');
+        break;
       case 'status':
-        requestSort('status')
-        break
+        requestSort('status');
+        break;
       default:
-        break
+        break;
     }
-  }
+  };
 
   return (
     <TooltipProvider>
       <div className="flex min-h-screen bg-gray-100">
-        <Sidebar className="w-64 bg-black text-white shadow-md">
-          <SidebarItem href="/Dashboard/vendor-topup" className="hover:bg-gray-800 p-3 rounded-md">Vendor Topup</SidebarItem>
-          <SidebarItem href="/Dashboard/vendor-to-customers" className="hover:bg-gray-800 p-3 rounded-md">Vendor to Customers</SidebarItem>
-          <SidebarItem href="/Dashboard/customer-to-customer" className="hover:bg-gray-800 p-3 rounded-md">Customer to Customer</SidebarItem>
-          <SidebarItem href="/Dashboard/payment-customer-to-merchant" className="hover:bg-gray-800 p-3 rounded-md">Payment (Customer to Merchant)</SidebarItem>
-          <SidebarItem href="/Dashboard/payment-merchant-to-merchant" className="hover:bg-gray-800 p-3 rounded-md">Payment (Merchant to Merchant)</SidebarItem>
-          <SidebarItem href="/Dashboard/pending-invoices" className="hover:bg-gray-800 p-3 rounded-md">Pending Invoices (B2B)</SidebarItem>
-          <SidebarItem href="/Dashboard/total-transactions" className="hover:bg-gray-800 p-3 rounded-md">Total Transactions</SidebarItem>
-          <SidebarItem href="/Dashboard/physical-card-status" className="hover:bg-gray-800 p-3 rounded-md">Physical Card Issuing Status</SidebarItem>
-        </Sidebar>
+        <Sidebar className="w-64 bg-black text-white shadow-md" />
         <div className="flex-1 p-6 ml-64">
           <Card className="bg-white shadow-md">
             <CardHeader>
@@ -217,13 +208,13 @@ const PhysicalCardStatus = () => {
         </div>
       </div>
     </TooltipProvider>
-  )
-}
+  );
+};
 
 export const LatestPhysicalCardStatus: React.FC = () => {
   const latestCardStatusData = physicalCardStatusData
     .sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime())
-    .slice(0, 3)
+    .slice(0, 3);
 
   return (
     <Link href="/Dashboard/physical-card-status">
@@ -256,7 +247,7 @@ export const LatestPhysicalCardStatus: React.FC = () => {
         </CardContent>
       </Card>
     </Link>
-  )
-}
+  );
+};
 
-export default PhysicalCardStatus
+export default PhysicalCardStatus;

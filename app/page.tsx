@@ -1,50 +1,72 @@
+"use client"
+
 import * as React from "react"
-import { Sidebar, SidebarItem } from "../components/ui/SideBar"
-import { Badge } from "../components/ui/badge"
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "../components/ui/table"
-import { LatestVendorTopup } from "./Dashboard/vendor-topup/page" // Import the LatestVendorTopup component
-import { LatestVendorToCustomers } from "./Dashboard/vendor-to-customers/page" // Import the LatestVendorToCustomers component
-import { LatestCustomerToCustomer } from "./Dashboard/customer-to-customer/page" // Import the LatestCustomerToCustomer component
-import { LatestPaymentCustomerToMerchant } from "./Dashboard/payment-customer-to-merchant/page" // Import the LatestPaymentCustomerToMerchant component
-import { LatestPendingInvoices } from "./Dashboard/pending-invoices/page"
-import { LatestPaymentMerchantToMerchant } from "./Dashboard/payment-merchant-to-merchant/page"
-import { LatestTotalTransactions } from "./Dashboard/total-transactions/page"
-import { LatestPhysicalCardStatus } from "./Dashboard/physical-card-status/page"
-const Page = () => {
+import { useRouter } from "next/navigation" // Import useRouter from next/navigation
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import Link from "next/link"
+import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, useToast } from "../components/ui/toast" // Import Toast components
+
+const LoginPage = () => {
+  const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const router = useRouter()
+  const { open, message, setOpen, showToast } = useToast() // Initialize toast
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (email === "admin" && password === "admin") {
+      router.push("/Dashboard/home")
+    } else {
+      showToast("Invalid credentials", "Please check your email and password and try again.", "destructive")
+    }
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <Sidebar className="w-64 bg-black text-white shadow-md">
-        <SidebarItem href="/Dashboard/vendor-topup" className="hover:bg-gray-800 p-3 rounded-md">Vendor Topup</SidebarItem>
-        <SidebarItem href="/Dashboard/vendor-to-customers" className="hover:bg-gray-800 p-3 rounded-md">Vendor to Customers</SidebarItem>
-        <SidebarItem href="/Dashboard/customer-to-customer" className="hover:bg-gray-800 p-3 rounded-md">Customer to Customer</SidebarItem>
-        <SidebarItem href="/Dashboard/payment-customer-to-merchant" className="hover:bg-gray-800 p-3 rounded-md">Payment (Customer to Merchant)</SidebarItem>
-        <SidebarItem href="/Dashboard/payment-merchant-to-merchant" className="hover:bg-gray-800 p-3 rounded-md">Payment (Merchant to Merchant)</SidebarItem>
-        <SidebarItem href="/Dashboard/pending-invoices" className="hover:bg-gray-800 p-3 rounded-md">Pending Invoices (B2B)</SidebarItem>
-        <SidebarItem href="/Dashboard/total-transactions" className="hover:bg-gray-800 p-3 rounded-md">Total Transactions</SidebarItem>
-        <SidebarItem href="/Dashboard/physical-card-status" className="hover:bg-gray-800 p-3 rounded-md">Physical Card Issuing Status</SidebarItem>
-      </Sidebar>
-      <div className="flex-1 p-6 ml-64">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <LatestVendorTopup /> {/* Use the LatestVendorTopup component here */}
-          <LatestVendorToCustomers /> {/* Use the LatestVendorToCustomers component here */}
-          <LatestCustomerToCustomer /> {/* Use the LatestCustomerToCustomer component here */}
-          <LatestPaymentCustomerToMerchant /> {/* Use the LatestPaymentCustomerToMerchant component here */}
-          <LatestPaymentMerchantToMerchant /> {/* Use the LatestPaymentCustomerToMerchant component here */}
-          <LatestPendingInvoices /> {/* Use the LatestPendingInvoices component here */}
-          <LatestTotalTransactions /> {/* Use the LatestTotalTransactions component here */}
-          <LatestPhysicalCardStatus /> {/* Use the LatestPhysicalCardStatus component here */}
-        </div>
+    <ToastProvider> {/* Wrap your component with ToastProvider */}
+      <div className="flex min-h-screen items-center justify-center bg-gray-100">
+        <Card className="w-full max-w-md p-6">
+          <CardHeader>
+            <CardTitle>Login</CardTitle>
+            <CardDescription>Access your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email</label>
+                <Input
+                  id="email"
+                  type="text"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="mt-1 block w-full"
+                />
+              </div>
+              <div className="mb-4">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="mt-1 block w-full"
+                />
+              </div>
+              <Button type="submit" className="w-full">Login</Button>
+            </form>
+          </CardContent>
+        </Card>
+        <ToastViewport />
+        <Toast open={open} onOpenChange={setOpen} variant={message.variant}>
+          <ToastTitle>{message.title}</ToastTitle>
+          <ToastDescription>{message.description}</ToastDescription>
+        </Toast>
       </div>
-    </div>
+    </ToastProvider>
   )
 }
 
-export default Page
+export default LoginPage
