@@ -65,9 +65,6 @@ const SignupPage = () => {
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full">Sign Up</Button>
           </form>
-          <p className="mt-4 text-center text-sm text-gray-600">
-            Already have an account? <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
-          </p>
         </CardContent>
       </Card>
     </div>

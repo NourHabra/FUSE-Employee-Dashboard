@@ -12,6 +12,8 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "target": "es2015", // Ensure ES2015 or higher for Uint8Array iteration support
+    "downlevelIteration": true, // Enable downlevel iteration for compatibility
     "plugins": [
       {
         "name": "next"
