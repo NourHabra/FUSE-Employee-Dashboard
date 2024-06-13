@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link"; // Import Link from next/link
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
@@ -18,6 +18,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../../../components/ui/tooltip";
 import { FaFilter, FaSort } from "react-icons/fa"; // Importing icons from react-icons
 import { Sidebar } from "../../../components/ui/SideBar"; // Import Sidebar
+import { useKeyContext } from "../../../context/KeyContext"; // Import useKeyContext
+import { encryption, decryption } from "../../../lib/crypto-utils"; // Import encryption and decryption methods
 
 interface TransactionData {
   transaction: string;
@@ -26,17 +28,8 @@ interface TransactionData {
   amount: number;
 }
 
-export const paymentMerchantToMerchantData: TransactionData[] = [
-  { transaction: "Transaction 1", accountNumber: "12345", date: "2023-01-01", amount: 100.00 },
-  { transaction: "Transaction 2", accountNumber: "67890", date: "2023-02-01", amount: 50.00 },
-  { transaction: "Transaction 3", accountNumber: "54321", date: "2023-03-01", amount: 200.00 },
-  { transaction: "Transaction 1", accountNumber: "12345", date: "2024-01-01", amount: 100.00 },
-  { transaction: "Transaction 2", accountNumber: "67890", date: "2024-02-01", amount: 50.00 },
-  { transaction: "Transaction 3", accountNumber: "54321", date: "2024-03-01", amount: 200.00 },
-  // Add more data as needed
-];
-
 const PaymentMerchantToMerchant = () => {
+  const [transactionData, setTransactionData] = useState<TransactionData[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: keyof TransactionData, direction: string } | null>(null);
   const [filter, setFilter] = useState<{ accountNumber: string, date: string, minAmount: string, maxAmount: string }>({
     accountNumber: "",
@@ -45,7 +38,41 @@ const PaymentMerchantToMerchant = () => {
     maxAmount: ""
   });
 
-  const transactionData: TransactionData[] = useMemo(() => paymentMerchantToMerchantData, []);
+  const { sharedKey, jwt, role } = useKeyContext(); // Get sharedKey, jwt, and role from context
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (sharedKey && jwt) {
+        try {
+          const encryptedPayload = await encryption({ data: { sourceRole: "Merchant", destinationRole: "Merchant" } }, sharedKey);
+
+          console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
+
+          const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/fromTo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ jwt, payload: encryptedPayload }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          const decryptedData = await decryption(responseData, sharedKey);
+          const parsedData = JSON.parse(decryptedData);
+          console.log("Parsed transaction data:", parsedData); // Log the parsed data
+          setTransactionData(parsedData.transactions);
+        } catch (error) {
+          console.error('Error during data fetch:', error);
+        }
+      }
+    };
+
+    fetchData();
+  }, [sharedKey, jwt]);
 
   const sortedData = useMemo(() => {
     let sortableData = [...transactionData];
@@ -221,9 +248,42 @@ const PaymentMerchantToMerchant = () => {
 };
 
 export const LatestPaymentMerchantToMerchant: React.FC = () => {
-  const latestTransactionData = paymentMerchantToMerchantData
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 3);
+  const { sharedKey, jwt } = useKeyContext(); // Get sharedKey and jwt from context
+  const [latestTransactionData, setLatestTransactionData] = useState<TransactionData[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (sharedKey && jwt) {
+        try {
+          const encryptedPayload = await encryption({ data: { sourceRole: "merchant", destinationRole: "merchant" } }, sharedKey);
+
+          console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
+
+          const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/fromTo", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ jwt, payload: encryptedPayload }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+          }
+
+          const responseData = await response.json();
+          const decryptedData = await decryption(responseData, sharedKey);
+          const parsedData = JSON.parse(decryptedData);
+          console.log("Parsed latest transaction data:", parsedData); // Log the parsed data
+          setLatestTransactionData(parsedData.transactions.slice(0, 3));
+        } catch (error) {
+          console.error('Error during data fetch:', error);
+        }
+      }
+    };
+
+    fetchData();
+  }, [sharedKey, jwt]);
 
   return (
     <Link href="/Dashboard/payment-merchant-to-merchant">

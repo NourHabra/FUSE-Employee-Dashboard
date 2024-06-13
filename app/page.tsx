@@ -139,7 +139,7 @@ const LoginPage = () => {
                   {loading ? (
                     <>
                       <span className="mr-2">Loading...</span>
-                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded-full"></div>
+                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 border-t-transparent border-white rounded-full"></div>
                     </>
                   ) : (
                     "Next"
@@ -161,7 +161,7 @@ const LoginPage = () => {
                   {loading ? (
                     <>
                       <span className="mr-2">Loading...</span>
-                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded-full"></div>
+                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 border-t-transparent border-white rounded-full"></div>
                     </>
                   ) : (
                     "Login"
