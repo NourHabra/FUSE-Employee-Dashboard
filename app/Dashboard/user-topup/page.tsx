@@ -18,6 +18,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../../../components/ui/tooltip";
 import { FaFilter, FaSort } from "react-icons/fa"; // Importing icons from react-icons
 import { Sidebar } from "../../../components/ui/SideBar"; // Import Sidebar
+import { useKeyContext } from "../../../context/KeyContext"; // Import KeyContext
+import { encryption } from "../../../lib/crypto-utils"; // Import encryption function
 
 interface TopupData {
   vendor: string;
@@ -26,7 +28,8 @@ interface TopupData {
   amount: number;
 }
 
-const VendorTopup = () => {
+const UserTopup = () => {
+  const { jwt, sharedKey } = useKeyContext(); // Get JWT token and shared key from context
   const [sortConfig, setSortConfig] = useState<{ key: keyof TopupData, direction: string } | null>(null);
   const [filter, setFilter] = useState<{ accountNumber: string, date: string, minAmount: string, maxAmount: string }>({
     accountNumber: "",
@@ -34,6 +37,10 @@ const VendorTopup = () => {
     minAmount: "",
     maxAmount: ""
   });
+  const [showPopup, setShowPopup] = useState(false);
+  const [destinationAccount, setDestinationAccount] = useState("");
+  const [amount, setAmount] = useState("");
+  const [details, setDetails] = useState("");
 
   const topupData: TopupData[] = useMemo(() => [
     { vendor: "Vendor 1", accountNumber: "12345", date: "2023-01-01", amount: 500.00 },
@@ -103,6 +110,37 @@ const VendorTopup = () => {
     }
   };
 
+  const handleAddBalance = async () => {
+    if (!jwt || !sharedKey) {
+      alert("JWT token or shared key is missing");
+      return;
+    }
+
+    const payload = {
+      destinationAccount,
+      amount: parseFloat(amount),
+      details: details || undefined,
+    };
+
+    const encryptedPayload = await encryption({ data: payload }, sharedKey);
+
+    const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/deposit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${jwt}`,
+      },
+      body: JSON.stringify({ jwt, payload: encryptedPayload }),
+    });
+
+    if (response.ok) {
+      alert("Balance added successfully");
+      setShowPopup(false);
+    } else {
+      alert("Failed to add balance");
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="flex min-h-screen bg-gray-100">
@@ -115,6 +153,7 @@ const VendorTopup = () => {
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex justify-end space-x-4">
+                <Button onClick={() => setShowPopup(true)}>+ Add Balance</Button>
                 <DropdownMenu>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -214,6 +253,39 @@ const VendorTopup = () => {
           </Card>
         </div>
       </div>
+
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-md">
+            <h2 className="text-xl mb-4">Add Balance</h2>
+            <Input 
+              type="text" 
+              placeholder="Destination Account" 
+              value={destinationAccount} 
+              onChange={(e) => setDestinationAccount(e.target.value)} 
+              className="mb-4"
+            />
+            <Input 
+              type="number" 
+              placeholder="Amount" 
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value)} 
+              className="mb-4"
+            />
+            <Input 
+              type="text" 
+              placeholder="Details (optional)" 
+              value={details} 
+              onChange={(e) => setDetails(e.target.value)} 
+              className="mb-4"
+            />
+            <div className="flex justify-end space-x-4">
+              <Button onClick={() => setShowPopup(false)}>Cancel</Button>
+              <Button onClick={handleAddBalance}>Add Balance</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </TooltipProvider>
   );
 };
@@ -233,7 +305,7 @@ export const LatestVendorTopup: React.FC = () => {
   const latestTopupData = topupData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
 
   return (
-    <Link href="/Dashboard/vendor-topup">
+    <Link href="/Dashboard/user-topup">
       <Card className="bg-white shadow-md cursor-pointer">
         <CardHeader>
           <CardTitle>Vendor Topup</CardTitle>
@@ -266,4 +338,4 @@ export const LatestVendorTopup: React.FC = () => {
   );
 };
 
-export default VendorTopup;
+export default UserTopup;

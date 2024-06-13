@@ -1,11 +1,14 @@
+// components/ui/SideBar.tsx
+"use client"
 import * as React from "react";
 import { cn } from "../../lib/utils";
 import Link from "next/link";
-import { Button } from "../../components/ui/button"; // Import the Button component
+import { Button } from "../../components/ui/button";
+import { useKeyContext } from "../../context/KeyContext"; // Correctly import useKeyContext
 
 interface SidebarProps {
   className?: string;
-  role?: string; // Add role prop
+  role?: string;
 }
 
 interface SidebarItemProps {
@@ -15,6 +18,8 @@ interface SidebarItemProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ className, role }) => {
+  const { role: userRole } = useKeyContext(); // Get the role from context
+
   return (
     <div className={cn("w-64 bg-black text-white shadow-md h-screen overflow-hidden fixed top-0 left-0", className)}>
       <div className="p-4">
@@ -23,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, role }) => {
         </Link>
       </div>
       <div className="p-4">
-        <SidebarItem href="/Dashboard/vendor-topup">Vendor Topup</SidebarItem>
+        <SidebarItem href="/Dashboard/user-topup">User Topup</SidebarItem>
         <SidebarItem href="/Dashboard/vendor-to-customers">Vendor to Customers</SidebarItem>
         <SidebarItem href="/Dashboard/customer-to-customer">Customer to Customer</SidebarItem>
         <SidebarItem href="/Dashboard/payment-customer-to-merchant">Customer to Merchant</SidebarItem>
@@ -31,7 +36,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ className, role }) => {
         <SidebarItem href="/Dashboard/pending-invoices">Pending Invoices</SidebarItem>
         <SidebarItem href="/Dashboard/total-transactions">Total Transactions</SidebarItem>
         <SidebarItem href="/Dashboard/physical-card-status">Card Issuing Status</SidebarItem>
-        {role === "admin" && <SidebarItem href="/Dashboard/signup">New Dashboard Employee</SidebarItem>} {/* Conditionally render */}
+        {userRole === "Admin" && ( // Conditionally render the tab based on the role
+          <SidebarItem href="/Dashboard/signup">New Dashboard Employee</SidebarItem>
+        )}
       </div>
     </div>
   );
