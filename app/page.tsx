@@ -1,7 +1,10 @@
+// app/page.tsx
+
 "use client"
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { jwtDecode } from "jwt-decode";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Input } from "../components/ui/input"
@@ -9,25 +12,26 @@ import { ToastProvider, Toast, ToastTitle, ToastDescription, ToastViewport, useT
 import Image from "next/image"
 import { genPublic, genShared, encryption, decryption } from "../lib/crypto-utils" // Import the TypeScript functions
 import { useKeyContext } from "../context/KeyContext" // Adjust path if needed
-
+import { Sidebar } from "../components/ui/SideBar" // Import Sidebar
 const LoginPage = () => {
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [step, setStep] = React.useState(1)
+  const [loading, setLoading] = React.useState(false) // Add loading state
+  const [role, setRole] = React.useState<string | null>(null) // Add role state
   const router = useRouter()
   const { open, message, setOpen, showToast } = useToast()
-  const { publicKey, privateKey, serverPublicKey, sharedKey, setPublicKey, setPrivateKey, setServerPublicKey, setSharedKey } = useKeyContext()
+  const { publicKey, privateKey, serverPublicKey, sharedKey, jwt, setPublicKey, setPrivateKey, setServerPublicKey, setSharedKey, setJwt } = useKeyContext()
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+    setLoading(true) // Set loading to true
     try {
       const clientPublicKey = await genPublic(); // Generate public key
 
-      // Print the generated public key
       console.log("Client public key:", clientPublicKey);
 
-      // Send public key and email to server for key exchange
-      const response = await fetch("https://fuse-backend-x7mr.onrender.com/key/generate", {
+      const response = await fetch("https://fuse-backend-x7mr.onrender.com/key/dashboard/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,62 +39,70 @@ const LoginPage = () => {
         body: JSON.stringify({ email, clientPublicKey }),
       });
 
-      // Print the sent email and public key
       console.log("Sent email:", email);
 
-      // Check if the server response is valid
       if (!response.ok) {
         throw new Error(`Server responded with status ${response.status}`);
       }
 
       const data = await response.json();
 
-      // Print the server public key
       console.log("Server public key:", data.serverPublicKey);
 
-      // Check if the server response contains the expected properties
       if (!data.serverPublicKey) {
         throw new Error("Invalid server response");
       }
 
       const { serverPublicKey } = data;
 
-      // Save server public key in context
       setServerPublicKey(serverPublicKey);
 
-      // Derive shared key using server public key
       const derivedSharedKey = await genShared(serverPublicKey);
       setSharedKey(derivedSharedKey);
-
-      // Print the shared key
-      console.log("Shared key:", derivedSharedKey);
+      console.log("Shared key set:", derivedSharedKey); // Debug: Confirm shared key is set
 
       setStep(2); // Move to the next step
     } catch (error) {
       console.error('Error during key exchange:', error);
       showToast("Error", "Failed to exchange keys. Please try again.", "destructive");
+    } finally {
+      setLoading(false) // Set loading to false
     }
   }
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
+    setLoading(true) // Set loading to true
     try {
-      console.log("Shared key before encryption:", sharedKey); // Debug: Print shared key before using it
       if (sharedKey) {
         const encryptedPayload = await encryption({ data: { email, password } }, sharedKey); // Encrypt the email and password
-        const response = await fetch("https://fuse-backend-x7mr.onrender.com/auth/login", {
+        console.log("Encrypted Payload:", encryptedPayload); // Debug: Print the encrypted payload
+
+        const response = await fetch("https://fuse-backend-x7mr.onrender.com/auth/dashboard/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email,payload: encryptedPayload }),
+          body: JSON.stringify({ email, payload: encryptedPayload }),
         });
 
         if (response.ok) {
           const decryptedData = await decryption(await response.json(), sharedKey); // Decrypt the server response
           // Handle the decrypted data as needed
+          const parsedData = JSON.parse(decryptedData); // Parse the decrypted data
+          const { jwt } = parsedData; // Extract JWT token
+          console.log("Extracted JWT:", jwt); // Debug: Print the extracted JWT
+          setJwt(jwt); // Save JWT token in context
+          console.log("JWT set in context:", jwt); // Debug: Confirm JWT is set in context
+
+          // Decode the JWT to extract the role
+          const decodedToken: { role: string } = jwtDecode(jwt);
+          setRole(decodedToken.role); // Set the role in state
+
           router.push("/Dashboard/home");
         } else {
+          const errorData = await response.json();
+          console.error('Error response:', errorData); // Debug: Print the error response
           showToast("Invalid credentials", "Please check your email and password and try again.", "destructive");
         }
       } else {
@@ -99,6 +111,8 @@ const LoginPage = () => {
     } catch (error) {
       console.error('Error during login:', error);
       showToast("Error", "Failed to login. Please try again.", "destructive");
+    } finally {
+      setLoading(false) // Set loading to false
     }
   }
 
@@ -136,8 +150,15 @@ const LoginPage = () => {
                     className="w-full"
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Next
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <span className="mr-2">Loading...</span>
+                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded-full"></div>
+                    </>
+                  ) : (
+                    "Next"
+                  )}
                 </Button>
               </form>
             ) : (
@@ -151,8 +172,15 @@ const LoginPage = () => {
                     className="w-full"
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Login
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <span className="mr-2">Loading...</span>
+                      <div className="spinner-border animate-spin inline-block w-4 h-4 border-4 rounded-full"></div>
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </form>
             )}
@@ -164,6 +192,13 @@ const LoginPage = () => {
           <ToastDescription>{message.description}</ToastDescription>
         </Toast>
       </div>
+      {jwt && (
+        <div className="mt-4 p-4 bg-white shadow-md rounded-md">
+          <h2 className="text-lg font-bold">JWT Token:</h2>
+          <pre className="break-words">{jwt}</pre>
+        </div>
+      )}
+      {role && <Sidebar role={role} />} {/* Pass the role to the Sidebar */}
     </ToastProvider>
   )
 }

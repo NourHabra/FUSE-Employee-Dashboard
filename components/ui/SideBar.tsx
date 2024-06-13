@@ -5,6 +5,7 @@ import { Button } from "../../components/ui/button"; // Import the Button compon
 
 interface SidebarProps {
   className?: string;
+  role?: string; // Add role prop
 }
 
 interface SidebarItemProps {
@@ -13,7 +14,7 @@ interface SidebarItemProps {
   href: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ className, role }) => {
   return (
     <div className={cn("w-64 bg-black text-white shadow-md h-screen overflow-hidden fixed top-0 left-0", className)}>
       <div className="p-4">
@@ -30,7 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ className }) => {
         <SidebarItem href="/Dashboard/pending-invoices">Pending Invoices</SidebarItem>
         <SidebarItem href="/Dashboard/total-transactions">Total Transactions</SidebarItem>
         <SidebarItem href="/Dashboard/physical-card-status">Card Issuing Status</SidebarItem>
-        <SidebarItem href="/Dashboard/signup">New Dashboard Employee</SidebarItem>
+        {role === "admin" && <SidebarItem href="/Dashboard/signup">New Dashboard Employee</SidebarItem>} {/* Conditionally render */}
       </div>
     </div>
   );
