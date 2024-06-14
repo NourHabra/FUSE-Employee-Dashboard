@@ -14,18 +14,18 @@ export const genPublic = async (): Promise<string> => {
 
 export const genShared = async (serverPublicKey: string): Promise<string> => {
   let sharedKey = client.computeSecret(Buffer.from(serverPublicKey, 'base64')).toString('hex');
-  console.log("Generated shared key:", sharedKey); // Debug: Print the shared key
+  // console.log("Generated shared key:", sharedKey); // Debug: Print the shared key
   return sharedKey;
 };
 
 export const decryption = async (res: { payload: string }, sharedKey: string): Promise<any> => {
   if (!res) {
-    console.log('no data');
+    // console.log('no data');
     return;
   }
   const decrypted = decrypt(res.payload, sharedKey);
   const data = JSON.parse(decrypted);
-  console.log('Decrypted message: ', decrypted);
+  // console.log('Decrypted message: ', decrypted);
   return data;
 };
 

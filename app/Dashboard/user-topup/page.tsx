@@ -19,7 +19,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../../
 import { FaFilter, FaSort } from "react-icons/fa"; // Importing icons from react-icons
 import { Sidebar } from "../../../components/ui/SideBar"; // Import Sidebar
 import { useKeyContext } from "../../../context/KeyContext"; // Import KeyContext
-import { encryption } from "../../../lib/crypto-utils"; // Import encryption function
+import { encryption, decryption } from "../../../lib/crypto-utils"; // Import encryption and decryption functions
 
 interface TopupData {
   vendor: string;
@@ -45,29 +45,50 @@ const UserTopup = () => {
 
   useEffect(() => {
     const fetchTopupData = async () => {
-      if (!jwt) {
-        alert("JWT token is missing");
+      if (!jwt || !sharedKey) {
+        alert("JWT token or shared key is missing");
         return;
       }
-
-      const response = await fetch("/transaction/topUp", {
+  
+      const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/topUp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ jwt }),
       });
-
+  
+      const data = await response.json();
+      console.log("Fetched data:", data); // Log the fetched data
+  
       if (response.ok) {
-        const data = await response.json();
-        setTopupData(data);
+        if (data.payload) {
+          try {
+            console.log("Payload before decryption:", data.payload);
+            const decryptedData = await decryption(data.payload, sharedKey);
+            console.log("Decrypted data:", decryptedData);
+            const parsedData = JSON.parse(decryptedData);
+            if (Array.isArray(parsedData)) {
+              setTopupData(parsedData);
+            } else {
+              alert("Fetched data is not an array");
+            }
+          } catch (error) {
+            console.error("Decryption error:", error);
+            alert("Failed to decrypt data");
+          }
+        } else {
+          console.error("Payload is missing in the response data");
+          alert("Payload is missing in the response data");
+        }
       } else {
         alert("Failed to fetch top-up data");
       }
     };
-
+  
     fetchTopupData();
-  }, [jwt]);
+  }, [jwt, sharedKey]);
+  
 
   const sortedData = useMemo(() => {
     let sortableData = [...topupData];
@@ -140,6 +161,8 @@ const UserTopup = () => {
     };
 
     const encryptedPayload = await encryption({ data: payload }, sharedKey);
+
+    console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
 
     const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/deposit", {
       method: "POST",
@@ -308,17 +331,17 @@ const UserTopup = () => {
 };
 
 export const LatestVendorTopup: React.FC = () => {
-  const { jwt } = useKeyContext(); // Get JWT token from context
+  const { jwt, sharedKey } = useKeyContext(); // Get JWT token and shared key from context
   const [latestTopupData, setLatestTopupData] = useState<TopupData[]>([]);
 
   useEffect(() => {
     const fetchLatestTopupData = async () => {
-      if (!jwt) {
-        alert("JWT token is missing");
+      if (!jwt || !sharedKey) {
+        alert("JWT token or shared key is missing");
         return;
       }
 
-      const response = await fetch("/transaction/topUp", {
+      const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/topUp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -326,17 +349,37 @@ export const LatestVendorTopup: React.FC = () => {
         body: JSON.stringify({ jwt }),
       });
 
+      const data = await response.json();
+      console.log("Fetched data:", data); // Log the fetched data
+
       if (response.ok) {
-        const data = await response.json();
-        const sortedData = data.sort((a: TopupData, b: TopupData) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
-        setLatestTopupData(sortedData);
+        if (data.payload) {
+          try {
+            console.log("Payload before decryption:", data.payload);
+            const decryptedData = await decryption(data.payload, sharedKey);
+            console.log("Decrypted data:", decryptedData);
+            const parsedData = JSON.parse(decryptedData);
+            if (Array.isArray(parsedData)) {
+              const sortedData = parsedData.sort((a: TopupData, b: TopupData) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+              setLatestTopupData(sortedData);
+            } else {
+              alert("Fetched data is not an array");
+            }
+          } catch (error) {
+            console.error("Decryption error:", error);
+            alert("Failed to decrypt data");
+          }
+        } else {
+          console.error("Payload is missing in the response data");
+          alert("Payload is missing in the response data");
+        }
       } else {
         alert("Failed to fetch top-up data");
       }
     };
 
     fetchLatestTopupData();
-  }, [jwt]);
+  }, [jwt, sharedKey]);
 
   return (
     <Link href="/Dashboard/user-topup">

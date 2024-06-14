@@ -51,7 +51,7 @@ const PaymentMerchantToMerchant = () => {
         try {
           const encryptedPayload = await encryption({ data: { sourceRole: "Merchant", destinationRole: "Merchant" } }, sharedKey);
 
-          console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
+          // console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
 
           const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/fromTo", {
             method: "POST",
@@ -72,7 +72,7 @@ const PaymentMerchantToMerchant = () => {
             sourceAccountName: item.sAccount.user.name,
             destinationAccountName: item.dAccount.user.name,
           }));
-          console.log("Parsed transaction data:", parsedData); // Log the parsed data
+          // console.log("Parsed transaction data:", parsedData); // Log the parsed data
           setTransactionData(parsedData);
         } catch (error) {
           console.error('Error during data fetch:', error);
@@ -267,7 +267,7 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
         try {
           const encryptedPayload = await encryption({ data: { sourceRole: "merchant", destinationRole: "merchant" } }, sharedKey);
 
-          console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
+          // console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
 
           const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/fromTo", {
             method: "POST",
@@ -288,7 +288,7 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
             sourceAccountName: item.sAccount.user.name,
             destinationAccountName: item.dAccount.user.name,
           }));
-          console.log("Parsed latest transaction data:", parsedData); // Log the parsed data
+          // console.log("Parsed latest transaction data:", parsedData); // Log the parsed data
           setLatestTransactionData(parsedData.slice(0, 3));
         } catch (error) {
           console.error('Error during data fetch:', error);

@@ -63,11 +63,16 @@ const PaymentCustomerToMerchant = () => {
           }
 
           const responseData = await response.json();
+          console.log("Response data:", responseData); // Log the response data
+
           const decryptedData = await decryption(responseData, sharedKey);
+          console.log("Decrypted data:", decryptedData); // Log the decrypted data
+
           const parsedData = JSON.parse(decryptedData).map((item: any) => ({
             ...item,
             sourceAccountName: item.sAccount.user.name,
             destinationAccountName: item.dAccount.user.name,
+            date: item.createdAt || "N/A", // Ensure date is present
           }));
           console.log("Parsed transaction data:", parsedData); // Log the parsed data
           setTransactionData(parsedData);
@@ -98,8 +103,14 @@ const PaymentCustomerToMerchant = () => {
 
   const filteredData = useMemo(() => {
     return sortedData.filter(item => {
-      const matchesAccountNumber = item.sourceAccount.includes(filter.accountNumber) || item.destinationAccount.includes(filter.accountNumber);
-      const matchesDate = item.date.includes(filter.date);
+      console.log("item:", item); // Log the entire item to see its structure
+
+      // Ensure sourceAccount and destinationAccount are strings
+      const sourceAccount = String(item.sourceAccount || "");
+      const destinationAccount = String(item.destinationAccount || "");
+
+      const matchesAccountNumber = sourceAccount.includes(filter.accountNumber) || destinationAccount.includes(filter.accountNumber);
+      const matchesDate = item.date ? item.date.includes(filter.date) : true; // Skip date filtering if date is not present
       const matchesMinAmount = filter.minAmount === "" || item.amount >= parseFloat(filter.minAmount);
       const matchesMaxAmount = filter.maxAmount === "" || item.amount <= parseFloat(filter.maxAmount);
       return matchesAccountNumber && matchesDate && matchesMinAmount && matchesMaxAmount;
@@ -243,7 +254,7 @@ const PaymentCustomerToMerchant = () => {
                       <TableCell>{item.sourceAccount}</TableCell>
                       <TableCell>{item.destinationAccountName}</TableCell>
                       <TableCell>{item.destinationAccount}</TableCell>
-                      <TableCell>{item.date}</TableCell>
+                      <TableCell>{item.date}</TableCell> {/* Handle missing date */}
                       <TableCell>${item.amount.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
@@ -287,6 +298,7 @@ export const LatestPaymentCustomerToMerchant: React.FC = () => {
             ...item,
             sourceAccountName: item.sAccount.user.name,
             destinationAccountName: item.dAccount.user.name,
+            date: item.createdAt || "N/A", // Ensure date is present
           }));
           console.log("Parsed latest transaction data:", parsedData); // Log the parsed data
           setLatestTransactionData(parsedData.slice(0, 3));
