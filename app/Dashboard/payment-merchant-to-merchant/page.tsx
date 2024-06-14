@@ -22,10 +22,15 @@ import { useKeyContext } from "../../../context/KeyContext"; // Import useKeyCon
 import { encryption, decryption } from "../../../lib/crypto-utils"; // Import encryption and decryption methods
 
 interface TransactionData {
-  transaction: string;
-  accountNumber: string;
-  date: string;
+  id: number;
+  sourceAccount: number;
+  sourceAccountName: string; // Add this field for the sender's account name
+  destinationAccount: number;
+  destinationAccountName: string; // Add this field for the receiver's account name
+  type: string;
   amount: number;
+  status: string;
+  createdAt: string;
 }
 
 const PaymentMerchantToMerchant = () => {
@@ -62,9 +67,13 @@ const PaymentMerchantToMerchant = () => {
 
           const responseData = await response.json();
           const decryptedData = await decryption(responseData, sharedKey);
-          const parsedData = JSON.parse(decryptedData);
+          const parsedData = JSON.parse(decryptedData).map((item: any) => ({
+            ...item,
+            sourceAccountName: item.sAccount.user.name,
+            destinationAccountName: item.dAccount.user.name,
+          }));
           console.log("Parsed transaction data:", parsedData); // Log the parsed data
-          setTransactionData(parsedData.transactions);
+          setTransactionData(parsedData);
         } catch (error) {
           console.error('Error during data fetch:', error);
         }
@@ -92,8 +101,8 @@ const PaymentMerchantToMerchant = () => {
 
   const filteredData = useMemo(() => {
     return sortedData.filter(item => {
-      const matchesAccountNumber = item.accountNumber.includes(filter.accountNumber);
-      const matchesDate = item.date.includes(filter.date);
+      const matchesAccountNumber = item.sourceAccount.toString().includes(filter.accountNumber) || item.destinationAccount.toString().includes(filter.accountNumber);
+      const matchesDate = item.createdAt.includes(filter.date);
       const matchesMinAmount = filter.minAmount === "" || item.amount >= parseFloat(filter.minAmount);
       const matchesMaxAmount = filter.maxAmount === "" || item.amount <= parseFloat(filter.maxAmount);
       return matchesAccountNumber && matchesDate && matchesMinAmount && matchesMaxAmount;
@@ -115,14 +124,11 @@ const PaymentMerchantToMerchant = () => {
 
   const handleSortChange = (value: string) => {
     switch (value) {
-      case 'transaction':
-        requestSort('transaction');
-        break;
       case 'accountNumber':
-        requestSort('accountNumber');
+        requestSort('sourceAccount');
         break;
       case 'date':
-        requestSort('date');
+        requestSort('createdAt');
         break;
       case 'amount':
         requestSort('amount');
@@ -159,33 +165,33 @@ const PaymentMerchantToMerchant = () => {
                   </Tooltip>
                   <DropdownMenuContent>
                     <div className="p-4 grid grid-cols-1 gap-4">
-                      <Input 
-                        type="text" 
-                        placeholder="Filter by account number..." 
+                      <Input
+                        type="text"
+                        placeholder="Filter by account number..."
                         name="accountNumber"
-                        value={filter.accountNumber} 
-                        onChange={handleFilterChange} 
+                        value={filter.accountNumber}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="date" 
-                        placeholder="Filter by date..." 
+                      <Input
+                        type="date"
+                        placeholder="Filter by date..."
                         name="date"
-                        value={filter.date} 
-                        onChange={handleFilterChange} 
+                        value={filter.date}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="number" 
-                        placeholder="Min amount..." 
+                      <Input
+                        type="number"
+                        placeholder="Min amount..."
                         name="minAmount"
-                        value={filter.minAmount} 
-                        onChange={handleFilterChange} 
+                        value={filter.minAmount}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="number" 
-                        placeholder="Max amount..." 
+                      <Input
+                        type="number"
+                        placeholder="Max amount..."
                         name="maxAmount"
-                        value={filter.maxAmount} 
-                        onChange={handleFilterChange} 
+                        value={filter.maxAmount}
+                        onChange={handleFilterChange}
                       />
                     </div>
                   </DropdownMenuContent>
@@ -204,7 +210,6 @@ const PaymentMerchantToMerchant = () => {
                     </TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onSelect={() => handleSortChange('transaction')}>Transaction</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('accountNumber')}>Account Number</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('date')}>Date</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('amount')}>Amount</DropdownMenuItem>
@@ -214,14 +219,16 @@ const PaymentMerchantToMerchant = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('transaction')}>
-                      Transaction {sortConfig?.key === 'transaction' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('sourceAccount')}>
+                      Source Name {sortConfig?.key === 'sourceAccount' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('accountNumber')}>
-                      Account Number {sortConfig?.key === 'accountNumber' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead>Source ID</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('destinationAccount')}>
+                      Destination Name {sortConfig?.key === 'destinationAccount' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
-                      Date {sortConfig?.key === 'date' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead>Destination ID</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('createdAt')}>
+                      Date {sortConfig?.key === 'createdAt' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
                     <TableHead className="cursor-pointer" onClick={() => requestSort('amount')}>
                       Amount {sortConfig?.key === 'amount' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
@@ -231,14 +238,17 @@ const PaymentMerchantToMerchant = () => {
                 <TableBody>
                   {filteredData.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell>{item.transaction}</TableCell>
-                      <TableCell>{item.accountNumber}</TableCell>
-                      <TableCell>{item.date}</TableCell>
+                      <TableCell>{item.sourceAccountName}</TableCell>
+                      <TableCell>{item.sourceAccount}</TableCell>
+                      <TableCell>{item.destinationAccountName}</TableCell>
+                      <TableCell>{item.destinationAccount}</TableCell>
+                      <TableCell>{item.createdAt}</TableCell>
                       <TableCell>${item.amount.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+
             </CardContent>
           </Card>
         </div>
@@ -273,9 +283,13 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
 
           const responseData = await response.json();
           const decryptedData = await decryption(responseData, sharedKey);
-          const parsedData = JSON.parse(decryptedData);
+          const parsedData = JSON.parse(decryptedData).map((item: any) => ({
+            ...item,
+            sourceAccountName: item.sAccount.user.name,
+            destinationAccountName: item.dAccount.user.name,
+          }));
           console.log("Parsed latest transaction data:", parsedData); // Log the parsed data
-          setLatestTransactionData(parsedData.transactions.slice(0, 3));
+          setLatestTransactionData(parsedData.slice(0, 3));
         } catch (error) {
           console.error('Error during data fetch:', error);
         }
@@ -296,8 +310,10 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Transaction</TableHead>
-                <TableHead>Account Number</TableHead>
+                <TableHead>Source Account Name</TableHead> {/* Add this column */}
+                <TableHead>Source Account</TableHead>
+                <TableHead>Destination Account Name</TableHead> {/* Add this column */}
+                <TableHead>Destination Account</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Amount</TableHead>
               </TableRow>
@@ -305,9 +321,11 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
             <TableBody>
               {latestTransactionData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{item.transaction}</TableCell>
-                  <TableCell>{item.accountNumber}</TableCell>
-                  <TableCell>{item.date}</TableCell>
+                  <TableCell>{item.sourceAccountName}</TableCell> {/* Add this cell */}
+                  <TableCell>{item.sourceAccount}</TableCell>
+                  <TableCell>{item.destinationAccountName}</TableCell> {/* Add this cell */}
+                  <TableCell>{item.destinationAccount}</TableCell>
+                  <TableCell>{item.createdAt}</TableCell>
                   <TableCell>${item.amount.toFixed(2)}</TableCell>
                 </TableRow>
               ))}

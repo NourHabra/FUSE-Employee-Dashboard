@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link"; // Import Link from next/link
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
@@ -41,16 +41,33 @@ const UserTopup = () => {
   const [destinationAccount, setDestinationAccount] = useState("");
   const [amount, setAmount] = useState("");
   const [details, setDetails] = useState("");
+  const [topupData, setTopupData] = useState<TopupData[]>([]); // State to store fetched data
 
-  const topupData: TopupData[] = useMemo(() => [
-    { vendor: "Vendor 1", accountNumber: "12345", date: "2023-01-01", amount: 500.00 },
-    { vendor: "Vendor 2", accountNumber: "67890", date: "2023-02-01", amount: 300.00 },
-    { vendor: "Vendor 3", accountNumber: "54321", date: "2023-03-01", amount: 700.00 },
-    { vendor: "Vendor 4", accountNumber: "98765", date: "2023-04-01", amount: 400.00 },
-    { vendor: "Vendor 5", accountNumber: "65432", date: "2023-05-01", amount: 600.00 },
-    { vendor: "Vendor 6", accountNumber: "32109", date: "2023-06-01", amount: 800.00 },
-    // Add more data as needed
-  ], []);
+  useEffect(() => {
+    const fetchTopupData = async () => {
+      if (!jwt) {
+        alert("JWT token is missing");
+        return;
+      }
+
+      const response = await fetch("/transaction/topUp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jwt }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setTopupData(data);
+      } else {
+        alert("Failed to fetch top-up data");
+      }
+    };
+
+    fetchTopupData();
+  }, [jwt]);
 
   const sortedData = useMemo(() => {
     let sortableData = [...topupData];
@@ -291,18 +308,35 @@ const UserTopup = () => {
 };
 
 export const LatestVendorTopup: React.FC = () => {
-  const topupData: TopupData[] = [
-    { vendor: "Vendor 1", accountNumber: "12345", date: "2023-01-01", amount: 500.00 },
-    { vendor: "Vendor 2", accountNumber: "67890", date: "2023-02-01", amount: 300.00 },
-    { vendor: "Vendor 3", accountNumber: "54321", date: "2023-03-01", amount: 700.00 },
-    { vendor: "Vendor 4", accountNumber: "98765", date: "2024-04-01", amount: 400.00 },
-    { vendor: "Vendor 5", accountNumber: "65432", date: "2024-05-01", amount: 600.00 },
-    { vendor: "Vendor 6", accountNumber: "32109", date: "2024-06-01", amount: 800.00 },
-    // Add more data as needed
-  ];
+  const { jwt } = useKeyContext(); // Get JWT token from context
+  const [latestTopupData, setLatestTopupData] = useState<TopupData[]>([]);
 
-  // Sort the data by date in descending order and take the top 3 entries
-  const latestTopupData = topupData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+  useEffect(() => {
+    const fetchLatestTopupData = async () => {
+      if (!jwt) {
+        alert("JWT token is missing");
+        return;
+      }
+
+      const response = await fetch("/transaction/topUp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jwt }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const sortedData = data.sort((a: TopupData, b: TopupData) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+        setLatestTopupData(sortedData);
+      } else {
+        alert("Failed to fetch top-up data");
+      }
+    };
+
+    fetchLatestTopupData();
+  }, [jwt]);
 
   return (
     <Link href="/Dashboard/user-topup">
