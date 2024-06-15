@@ -22,15 +22,26 @@ import { useKeyContext } from "../../../context/KeyContext"; // Import KeyContex
 import { encryption, decryption } from "../../../lib/crypto-utils"; // Import encryption and decryption functions
 
 interface TopupData {
-  vendor: string;
-  accountNumber: string;
-  date: string;
+  id: number;
+  sAccount: {
+    user: {
+      role: string;
+    };
+  };
+  dAccount: {
+    user: {
+      name: string;
+    };
+  };
+  destinationAccount: number;
   amount: number;
+  status: string;
+  date?: string; // Add date property if needed
 }
 
 const UserTopup = () => {
   const { jwt, sharedKey } = useKeyContext(); // Get JWT token and shared key from context
-  const [sortConfig, setSortConfig] = useState<{ key: keyof TopupData, direction: string } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: string } | null>(null);
   const [filter, setFilter] = useState<{ accountNumber: string, date: string, minAmount: string, maxAmount: string }>({
     accountNumber: "",
     date: "",
@@ -49,7 +60,7 @@ const UserTopup = () => {
         alert("JWT token or shared key is missing");
         return;
       }
-  
+
       const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/topUp", {
         method: "POST",
         headers: {
@@ -57,15 +68,15 @@ const UserTopup = () => {
         },
         body: JSON.stringify({ jwt }),
       });
-  
+
       const data = await response.json();
       console.log("Fetched data:", data); // Log the fetched data
-  
+
       if (response.ok) {
         if (data.payload) {
           try {
             console.log("Payload before decryption:", data.payload);
-            const decryptedData = await decryption(data.payload, sharedKey);
+            const decryptedData = await decryption(data, sharedKey);
             console.log("Decrypted data:", decryptedData);
             const parsedData = JSON.parse(decryptedData);
             if (Array.isArray(parsedData)) {
@@ -85,19 +96,20 @@ const UserTopup = () => {
         alert("Failed to fetch top-up data");
       }
     };
-  
+
     fetchTopupData();
   }, [jwt, sharedKey]);
-  
 
   const sortedData = useMemo(() => {
     let sortableData = [...topupData];
     if (sortConfig !== null) {
       sortableData.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const aValue = getNestedValue(a, sortConfig.key);
+        const bValue = getNestedValue(b, sortConfig.key);
+        if (aValue < bValue) {
           return sortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (aValue > bValue) {
           return sortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -108,15 +120,15 @@ const UserTopup = () => {
 
   const filteredData = useMemo(() => {
     return sortedData.filter(item => {
-      const matchesAccountNumber = item.accountNumber.includes(filter.accountNumber);
-      const matchesDate = item.date.includes(filter.date);
+      const matchesAccountNumber = item.dAccount.user.name.includes(filter.accountNumber);
+      const matchesDate = true; // Adjust this if you have a date field in the new structure
       const matchesMinAmount = filter.minAmount === "" || item.amount >= parseFloat(filter.minAmount);
       const matchesMaxAmount = filter.maxAmount === "" || item.amount <= parseFloat(filter.maxAmount);
       return matchesAccountNumber && matchesDate && matchesMinAmount && matchesMaxAmount;
     });
   }, [sortedData, filter]);
 
-  const requestSort = (key: keyof TopupData) => {
+  const requestSort = (key: string) => {
     let direction = 'ascending';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
       direction = 'descending';
@@ -130,22 +142,7 @@ const UserTopup = () => {
   };
 
   const handleSortChange = (value: string) => {
-    switch (value) {
-      case 'vendor':
-        requestSort('vendor');
-        break;
-      case 'accountNumber':
-        requestSort('accountNumber');
-        break;
-      case 'date':
-        requestSort('date');
-        break;
-      case 'amount':
-        requestSort('amount');
-        break;
-      default:
-        break;
-    }
+    requestSort(value);
   };
 
   const handleAddBalance = async () => {
@@ -209,33 +206,33 @@ const UserTopup = () => {
                   </Tooltip>
                   <DropdownMenuContent>
                     <div className="p-4 grid grid-cols-1 gap-4">
-                      <Input 
-                        type="text" 
-                        placeholder="Filter by account number..." 
+                      <Input
+                        type="text"
+                        placeholder="Filter by account number..."
                         name="accountNumber"
-                        value={filter.accountNumber} 
-                        onChange={handleFilterChange} 
+                        value={filter.accountNumber}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="date" 
-                        placeholder="Filter by date..." 
+                      <Input
+                        type="date"
+                        placeholder="Filter by date..."
                         name="date"
-                        value={filter.date} 
-                        onChange={handleFilterChange} 
+                        value={filter.date}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="number" 
-                        placeholder="Min amount..." 
+                      <Input
+                        type="number"
+                        placeholder="Min amount..."
                         name="minAmount"
-                        value={filter.minAmount} 
-                        onChange={handleFilterChange} 
+                        value={filter.minAmount}
+                        onChange={handleFilterChange}
                       />
-                      <Input 
-                        type="number" 
-                        placeholder="Max amount..." 
+                      <Input
+                        type="number"
+                        placeholder="Max amount..."
                         name="maxAmount"
-                        value={filter.maxAmount} 
-                        onChange={handleFilterChange} 
+                        value={filter.maxAmount}
+                        onChange={handleFilterChange}
                       />
                     </div>
                   </DropdownMenuContent>
@@ -254,37 +251,42 @@ const UserTopup = () => {
                     </TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onSelect={() => handleSortChange('vendor')}>Vendor</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleSortChange('accountNumber')}>Account Number</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleSortChange('date')}>Date</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('id')}>ID</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('sAccount.user.role')}>Source Role</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('dAccount.user.name')}>Destination Name</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('amount')}>Amount</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('status')}>Status</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('vendor')}>
-                      Vendor {sortConfig?.key === 'vendor' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('id')}>
+                      ID {sortConfig?.key === 'id' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('accountNumber')}>
-                      Account Number {sortConfig?.key === 'accountNumber' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('sAccount.user.role')}>
+                      Source Role {sortConfig?.key === 'sAccount.user.role' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('date')}>
-                      Date {sortConfig?.key === 'date' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('dAccount.user.name')}>
+                      Destination Name {sortConfig?.key === 'dAccount.user.name' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
                     <TableHead className="cursor-pointer" onClick={() => requestSort('amount')}>
                       Amount {sortConfig?.key === 'amount' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    </TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => requestSort('status')}>
+                      Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredData.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell>{item.vendor}</TableCell>
-                      <TableCell>{item.accountNumber}</TableCell>
-                      <TableCell>{item.date}</TableCell>
+                      <TableCell>{item.id}</TableCell>
+                      <TableCell>{item.sAccount.user.role}</TableCell>
+                      <TableCell>{item.dAccount.user.name}</TableCell>
                       <TableCell>${item.amount.toFixed(2)}</TableCell>
+                      <TableCell>{item.status}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -298,25 +300,25 @@ const UserTopup = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded shadow-md">
             <h2 className="text-xl mb-4">Add Balance</h2>
-            <Input 
-              type="text" 
-              placeholder="Destination Account" 
-              value={destinationAccount} 
-              onChange={(e) => setDestinationAccount(e.target.value)} 
+            <Input
+              type="text"
+              placeholder="Destination Account"
+              value={destinationAccount}
+              onChange={(e) => setDestinationAccount(e.target.value)}
               className="mb-4"
             />
-            <Input 
-              type="number" 
-              placeholder="Amount" 
-              value={amount} 
-              onChange={(e) => setAmount(e.target.value)} 
+            <Input
+              type="number"
+              placeholder="Amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
               className="mb-4"
             />
-            <Input 
-              type="text" 
-              placeholder="Details (optional)" 
-              value={details} 
-              onChange={(e) => setDetails(e.target.value)} 
+            <Input
+              type="text"
+              placeholder="Details (optional)"
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
               className="mb-4"
             />
             <div className="flex justify-end space-x-4">
@@ -356,11 +358,11 @@ export const LatestVendorTopup: React.FC = () => {
         if (data.payload) {
           try {
             console.log("Payload before decryption:", data.payload);
-            const decryptedData = await decryption(data.payload, sharedKey);
+            const decryptedData = await decryption(data, sharedKey);
             console.log("Decrypted data:", decryptedData);
             const parsedData = JSON.parse(decryptedData);
             if (Array.isArray(parsedData)) {
-              const sortedData = parsedData.sort((a: TopupData, b: TopupData) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 3);
+              const sortedData = parsedData.sort((a: TopupData, b: TopupData) => new Date(b.date!).getTime() - new Date(a.date!).getTime()).slice(0, 3);
               setLatestTopupData(sortedData);
             } else {
               alert("Fetched data is not an array");
@@ -386,29 +388,28 @@ export const LatestVendorTopup: React.FC = () => {
       <Card className="bg-white shadow-md cursor-pointer">
         <CardHeader>
           <CardTitle>Vendor Topup</CardTitle>
-          <CardDescription>Newest 3 transactions from vendors topup</CardDescription>
+          <CardDescription>Newest 3 transactions</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Account Number</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="text-center">Source Role</TableHead>
+                <TableHead className="text-center">Destination Name</TableHead>
+                <TableHead className="text-center">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {latestTopupData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{item.vendor}</TableCell>
-                  <TableCell>{item.accountNumber}</TableCell>
-                  <TableCell>{item.date}</TableCell>
-                  <TableCell>${item.amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-center">{item.sAccount.user.role}</TableCell>
+                  <TableCell className="text-center">{item.dAccount.user.name}</TableCell>
+                  <TableCell className="text-center">${item.amount.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+
         </CardContent>
       </Card>
     </Link>
@@ -416,3 +417,8 @@ export const LatestVendorTopup: React.FC = () => {
 };
 
 export default UserTopup;
+
+// Helper function to get nested value
+function getNestedValue(obj: any, path: string) {
+  return path.split('.').reduce((value, key) => value?.[key], obj);
+}

@@ -304,29 +304,23 @@ export const LatestPaymentMerchantToMerchant: React.FC = () => {
       <Card className="bg-white shadow-md cursor-pointer">
         <CardHeader>
           <CardTitle>Payment (Merchant to Merchant)</CardTitle>
-          <CardDescription>Newest 3 transactions from merchants to merchants</CardDescription>
+          <CardDescription>Newest 3 transactions</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Source Account Name</TableHead> {/* Add this column */}
-                <TableHead>Source Account</TableHead>
-                <TableHead>Destination Account Name</TableHead> {/* Add this column */}
-                <TableHead>Destination Account</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="text-center">Source Account Name</TableHead> {/* Add this column */}
+                <TableHead className="text-center">Destination Account Name</TableHead> {/* Add this column */}
+                <TableHead className="text-center">Amount</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {latestTransactionData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{item.sourceAccountName}</TableCell> {/* Add this cell */}
-                  <TableCell>{item.sourceAccount}</TableCell>
-                  <TableCell>{item.destinationAccountName}</TableCell> {/* Add this cell */}
-                  <TableCell>{item.destinationAccount}</TableCell>
-                  <TableCell>{item.createdAt}</TableCell>
-                  <TableCell>${item.amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-center">{item.sourceAccountName}</TableCell> {/* Add this cell */}
+                  <TableCell className="text-center">{item.destinationAccountName}</TableCell> {/* Add this cell */}
+                  <TableCell className="text-center">${item.amount.toFixed(2)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
