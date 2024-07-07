@@ -23,17 +23,15 @@ import { encryption, decryption } from "../../../lib/crypto-utils"; // Import en
 
 interface TopupData {
   id: number;
-  sAccount: {
-    user: {
-      role: string;
-    };
+  supervisor?: {
+    role: string;
   };
-  dAccount: {
-    user: {
+  account?: {
+    user?: {
       name: string;
     };
   };
-  destinationAccount: number;
+  accountNumber: number;
   amount: number;
   status: string;
   date?: string; // Add date property if needed
@@ -51,13 +49,11 @@ const UserTopup = () => {
   const [showPopup, setShowPopup] = useState(false);
   const [destinationAccount, setDestinationAccount] = useState("");
   const [amount, setAmount] = useState("");
-  const [details, setDetails] = useState("");
   const [topupData, setTopupData] = useState<TopupData[]>([]); // State to store fetched data
 
   useEffect(() => {
     const fetchTopupData = async () => {
       if (!jwt || !sharedKey) {
-        alert("JWT token or shared key is missing");
         return;
       }
 
@@ -120,7 +116,7 @@ const UserTopup = () => {
 
   const filteredData = useMemo(() => {
     return sortedData.filter(item => {
-      const matchesAccountNumber = item.dAccount.user.name.includes(filter.accountNumber);
+      const matchesAccountNumber = item.account?.user?.name.includes(filter.accountNumber);
       const matchesDate = true; // Adjust this if you have a date field in the new structure
       const matchesMinAmount = filter.minAmount === "" || item.amount >= parseFloat(filter.minAmount);
       const matchesMaxAmount = filter.maxAmount === "" || item.amount <= parseFloat(filter.maxAmount);
@@ -147,21 +143,19 @@ const UserTopup = () => {
 
   const handleAddBalance = async () => {
     if (!jwt || !sharedKey) {
-      alert("JWT token or shared key is missing");
       return;
     }
 
     const payload = {
-      destinationAccount,
+      account: parseInt(destinationAccount, 10),
       amount: parseFloat(amount),
-      details: details || undefined,
     };
 
     const encryptedPayload = await encryption({ data: payload }, sharedKey);
 
-    console.log("Making request to /transaction/fromTo with payload:", { jwt, payload: encryptedPayload });
+    console.log("Making request to /transaction/cash/deposit with payload:", { jwt, payload: encryptedPayload });
 
-    const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/deposit", {
+    const response = await fetch("https://fuse-backend-x7mr.onrender.com/transaction/cash/deposit", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -251,9 +245,9 @@ const UserTopup = () => {
                     </TooltipContent>
                   </Tooltip>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onSelect={() => handleSortChange('id')}>ID</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleSortChange('sAccount.user.role')}>Source Role</DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => handleSortChange('dAccount.user.name')}>Destination Name</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('supervisor.role')}>Source Role</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('accountNumber')}>Account ID</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleSortChange('account.user.name')}>Account User Name</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('amount')}>Amount</DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => handleSortChange('status')}>Status</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -262,19 +256,19 @@ const UserTopup = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('id')}>
-                      ID {sortConfig?.key === 'id' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="text-center cursor-pointer" onClick={() => requestSort('supervisor.role')}>
+                      Source Role {sortConfig?.key === 'supervisor.role' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('sAccount.user.role')}>
-                      Source Role {sortConfig?.key === 'sAccount.user.role' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="text-center cursor-pointer" onClick={() => requestSort('accountNumber')}>
+                      Account ID {sortConfig?.key === 'accountNumber' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('dAccount.user.name')}>
-                      Destination Name {sortConfig?.key === 'dAccount.user.name' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
+                    <TableHead className="text-center cursor-pointer" onClick={() => requestSort('account.user.name')}>
+                      Account User Name {sortConfig?.key === 'account.user.name' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('amount')}>
+                    <TableHead className="text-center cursor-pointer" onClick={() => requestSort('amount')}>
                       Amount {sortConfig?.key === 'amount' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => requestSort('status')}>
+                    <TableHead className="text-center cursor-pointer" onClick={() => requestSort('status')}>
                       Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'ascending' ? '↑' : '↓') : ''}
                     </TableHead>
                   </TableRow>
@@ -282,15 +276,16 @@ const UserTopup = () => {
                 <TableBody>
                   {filteredData.map((item, index) => (
                     <TableRow key={index}>
-                      <TableCell>{item.id}</TableCell>
-                      <TableCell>{item.sAccount.user.role}</TableCell>
-                      <TableCell>{item.dAccount.user.name}</TableCell>
-                      <TableCell>${item.amount.toFixed(2)}</TableCell>
-                      <TableCell>{item.status}</TableCell>
+                      <TableCell className="text-center">{item.supervisor?.role || "N/A"}</TableCell>
+                      <TableCell className="text-center">{item.accountNumber}</TableCell>
+                      <TableCell className="text-center">{item.account?.user?.name || "N/A"}</TableCell>
+                      <TableCell className="text-center">${item.amount.toFixed(2)}</TableCell>
+                      <TableCell className="text-center">{item.status}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+
             </CardContent>
           </Card>
         </div>
@@ -314,13 +309,6 @@ const UserTopup = () => {
               onChange={(e) => setAmount(e.target.value)}
               className="mb-4"
             />
-            <Input
-              type="text"
-              placeholder="Details (optional)"
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              className="mb-4"
-            />
             <div className="flex justify-end space-x-4">
               <Button onClick={() => setShowPopup(false)}>Cancel</Button>
               <Button onClick={handleAddBalance}>Add Balance</Button>
@@ -339,7 +327,6 @@ export const LatestVendorTopup: React.FC = () => {
   useEffect(() => {
     const fetchLatestTopupData = async () => {
       if (!jwt || !sharedKey) {
-        alert("JWT token or shared key is missing");
         return;
       }
 
@@ -395,21 +382,24 @@ export const LatestVendorTopup: React.FC = () => {
             <TableHeader>
               <TableRow>
                 <TableHead className="text-center">Source Role</TableHead>
-                <TableHead className="text-center">Destination Name</TableHead>
+                <TableHead className="text-center">Account ID</TableHead>
+                <TableHead className="text-center">Account User Name</TableHead>
                 <TableHead className="text-center">Amount</TableHead>
+                <TableHead className="text-center">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {latestTopupData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell className="text-center">{item.sAccount.user.role}</TableCell>
-                  <TableCell className="text-center">{item.dAccount.user.name}</TableCell>
+                  <TableCell className="text-center">{item.supervisor?.role || "N/A"}</TableCell>
+                  <TableCell className="text-center">{item.accountNumber}</TableCell>
+                  <TableCell className="text-center">{item.account?.user?.name || "N/A"}</TableCell>
                   <TableCell className="text-center">${item.amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-center">{item.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-
         </CardContent>
       </Card>
     </Link>

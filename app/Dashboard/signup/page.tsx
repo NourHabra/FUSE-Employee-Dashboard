@@ -9,6 +9,7 @@ import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { useKeyContext } from "../../../context/KeyContext" // Import the KeyContext
 import { encryption } from "../../../lib/crypto-utils" // Import the encryption function
+import { FaArrowLeft } from "react-icons/fa" // Import the back arrow icon
 
 const SignupPage = () => {
   const [name, setName] = React.useState("")
@@ -74,6 +75,14 @@ const SignupPage = () => {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <div className="absolute top-4 left-4">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center justify-center w-10 h-10 bg-black text-white rounded-full"
+        >
+          <FaArrowLeft />
+        </button>
+      </div>
       <Card className="w-full max-w-md p-6">
         <CardHeader>
           <CardTitle>Register Employee</CardTitle>
